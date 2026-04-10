@@ -29,7 +29,7 @@ public class PlayerJoinListener implements Listener {
             Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> {
                 Player target = Bukkit.getPlayer(tpaTarget);
                 if (target != null) {
-                    TeleportUtil.teleport(player, target.getLocation());
+                    TeleportUtil.teleportImmediate(player, target.getLocation());
                 } else {
                     player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
                 }
@@ -44,7 +44,7 @@ public class PlayerJoinListener implements Listener {
             Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> {
                 Player requester = Bukkit.getPlayer(tpaHereRequester);
                 if (requester != null) {
-                    TeleportUtil.teleport(player, requester.getLocation());
+                    TeleportUtil.teleportImmediate(player, requester.getLocation());
                 } else {
                     player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
                 }
