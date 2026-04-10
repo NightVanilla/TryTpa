@@ -1,10 +1,11 @@
-package net.trysmp.tpa.command;
+package net.nightvanilla.tpa.command;
 
 import net.kyori.adventure.text.Component;
-import net.trysmp.tpa.TryTpa;
-import net.trysmp.tpa.util.DateUtil;
-import net.trysmp.tpa.util.MessageUtil;
-import net.trysmp.tpa.util.TeleportUtil;
+import net.nightvanilla.tpa.RequestStore;
+import net.nightvanilla.tpa.TryTpa;
+import net.nightvanilla.tpa.util.DateUtil;
+import net.nightvanilla.tpa.util.MessageUtil;
+import net.nightvanilla.tpa.util.TeleportUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -20,9 +21,6 @@ import java.util.*;
 
 public class TpaAllCommand implements CommandExecutor, TabCompleter {
 
-    private static final HashMap<UUID, Long> commandDelay = new HashMap<>();
-    public static final HashMap<UUID, Location> requests = new HashMap<>();
-
     public TpaAllCommand() {
         Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaall")).setExecutor(this);
         Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaall")).setTabCompleter(this);
@@ -35,11 +33,11 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("accept")) {
             Player target = Bukkit.getPlayer(args[1]);
             if (target == null) {
-                sender.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
+                player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
                 return false;
             }
 
-            Location location = requests.get(target.getUniqueId());
+            Location location = TryTpa.getInstance().getRequestStore().getTpaAllRequest(target.getUniqueId());
             if (location != null) {
                 TeleportUtil.teleport(player, location);
                 player.sendMessage(MessageUtil.get("Messages.Accepted"));
@@ -49,12 +47,13 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        if (!(player.hasPermission("trytpa.command.tpaall"))) {
+        if (!player.hasPermission("trytpa.command.tpaall")) {
             player.sendMessage(MessageUtil.get("Messages.NoPermission"));
             return false;
         }
 
-        long delay = commandDelay.getOrDefault(player.getUniqueId(), 0L);
+        RequestStore store = TryTpa.getInstance().getRequestStore();
+        long delay = store.getTpaAllCooldown(player.getUniqueId());
         if (delay > System.currentTimeMillis()) {
             player.sendMessage(MessageUtil.get("Messages.CommandDelay").replaceAll("%time%", DateUtil.secondsToTime((delay - System.currentTimeMillis()) / 1000)));
             return false;
@@ -64,7 +63,7 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
             Component message = MessageUtil.getRequest("TpaAll", player.getName());
 
             for (Player target : Bukkit.getOnlinePlayers()) {
-                if (!(target.getName().equalsIgnoreCase(player.getName()))) {
+                if (!target.equals(player)) {
                     target.sendMessage(message);
                     if (TryTpa.getInstance().getConfig().getBoolean("Settings.Sounds.TpaAll")) {
                         target.playSound(target.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
@@ -74,12 +73,13 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
 
             player.sendMessage(MessageUtil.get("Messages.Sent"));
 
-            if (!(player.hasPermission("trytpa.bypass.cooldown"))) {
-                commandDelay.put(player.getUniqueId(), System.currentTimeMillis() + TryTpa.getInstance().getConfig().getLong("Settings.Cooldown.TpaAll"));
-                Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> requests.remove(player.getUniqueId()), 20 * TryTpa.getInstance().getConfig().getLong("Settings.Expiration.TpaAll"));
+            long expiration = TryTpa.getInstance().getConfig().getLong("Settings.Expiration.TpaAll");
+            store.putTpaAllRequest(player.getUniqueId(), player.getLocation(), expiration);
+
+            if (!player.hasPermission("trytpa.bypass.cooldown")) {
+                store.setTpaAllCooldown(player.getUniqueId(), System.currentTimeMillis() + TryTpa.getInstance().getConfig().getLong("Settings.Cooldown.TpaAll"));
             }
 
-            requests.put(player.getUniqueId(), player.getLocation());
             return false;
         }
 

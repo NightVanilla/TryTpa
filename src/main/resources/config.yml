@@ -19,7 +19,7 @@ Settings:
   Expiration:
     Tpa: 60
     TpaHere: 60
-    TpaAll: 600000 # 10 minutes
+    TpaAll: 600 # 10 minutes
 
   # Sound on request received
   Sounds:
@@ -81,3 +81,17 @@ Teleport:
   MaximumMoveDistance: 0.3
   CancelMessage: "%prefix%Teleportation was canceled because you moved!"
   CancelSound: "BLOCK_ANVIL_LAND" # empty = disabled
+
+# ---------------------------------------------------------------------------
+# Redis - Multi-Server Support
+#
+# Enable Redis to share TPA request state across multiple server instances.
+# All servers in your network must point to the same Redis instance.
+# When disabled, state is stored in-memory (single server only).
+# ---------------------------------------------------------------------------
+Redis:
+  Enabled: false
+  Host: localhost
+  Port: 6379
+  Password: ""
+  Database: 0

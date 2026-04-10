@@ -1,9 +1,9 @@
-package net.trysmp.tpa.util;
+package net.nightvanilla.tpa.util;
 
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.trysmp.tpa.TryTpa;
+import net.nightvanilla.tpa.TryTpa;
 
 @UtilityClass
 public class MessageUtil {

@@ -1,7 +1,7 @@
-package net.trysmp.tpa.command;
+package net.nightvanilla.tpa.command;
 
-import net.trysmp.tpa.TryTpa;
-import net.trysmp.tpa.util.MessageUtil;
+import net.nightvanilla.tpa.TryTpa;
+import net.nightvanilla.tpa.util.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -11,10 +11,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class TpaAcceptCommand implements CommandExecutor, TabCompleter {
 
@@ -30,7 +27,7 @@ public class TpaAcceptCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return false;
 
-        if (!(player.hasPermission("trytpa.command.tpa"))) {
+        if (!player.hasPermission("trytpa.command.tpa")) {
             player.sendMessage(MessageUtil.get("Messages.NoPermission"));
             return false;
         }
@@ -43,9 +40,9 @@ public class TpaAcceptCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             if (args[0].equalsIgnoreCase("*")) {
                 TpaCommand.acceptAll(player);
-                return false;
+            } else {
+                TpaCommand.accept(player, args[0]);
             }
-            TpaCommand.accept(player, args[0]);
             return false;
         }
 
@@ -58,16 +55,14 @@ public class TpaAcceptCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
 
         if (args.length == 1 && sender instanceof Player player) {
-            for (UUID uuid : TpaCommand.requests.keySet()) {
-                Player target = Bukkit.getPlayer(uuid);
-                if (TpaCommand.requests.get(uuid) == player.getUniqueId() && target != null) {
-                    list.add(target.getName());
-                }
+            for (UUID uuid : TryTpa.getInstance().getRequestStore().getTpaRequestersForTarget(player.getUniqueId())) {
+                Player requester = Bukkit.getPlayer(uuid);
+                if (requester != null) list.add(requester.getName());
             }
             list.add("*");
         }
 
-        return list.stream().filter(content -> content.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).sorted().toList();
+        return list.stream().filter(c -> c.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).sorted().toList();
     }
 
 }
