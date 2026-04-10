@@ -1,4 +1,4 @@
-package net.trysmp.tpa.util;
+package net.nightvanilla.tpa.util;
 
 import lombok.experimental.UtilityClass;
 import net.kyori.adventure.text.Component;

@@ -1,7 +1,7 @@
-package net.trysmp.tpa.command;
+package net.nightvanilla.tpa.command;
 
-import net.trysmp.tpa.TryTpa;
-import net.trysmp.tpa.util.MessageUtil;
+import net.nightvanilla.tpa.TryTpa;
+import net.nightvanilla.tpa.util.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;

@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>net.trysmp</groupId>
+    <groupId>net.nightvanilla</groupId>
     <artifactId>TryTpa</artifactId>
     <version>2.0</version>
 
@@ -59,11 +59,11 @@
                             <relocations>
                                 <relocation>
                                     <pattern>redis.clients</pattern>
-                                    <shadedPattern>net.trysmp.tpa.libs.redis.clients</shadedPattern>
+                                    <shadedPattern>net.nightvanilla.tpa.libs.redis.clients</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.apache.commons.pool2</pattern>
-                                    <shadedPattern>net.trysmp.tpa.libs.commons.pool2</shadedPattern>
+                                    <shadedPattern>net.nightvanilla.tpa.libs.commons.pool2</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>

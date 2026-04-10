@@ -1,11 +1,11 @@
-package net.trysmp.tpa.command;
+package net.nightvanilla.tpa.command;
 
 import net.kyori.adventure.text.Component;
-import net.trysmp.tpa.RequestStore;
-import net.trysmp.tpa.TryTpa;
-import net.trysmp.tpa.util.DateUtil;
-import net.trysmp.tpa.util.MessageUtil;
-import net.trysmp.tpa.util.TeleportUtil;
+import net.nightvanilla.tpa.RequestStore;
+import net.nightvanilla.tpa.TryTpa;
+import net.nightvanilla.tpa.util.DateUtil;
+import net.nightvanilla.tpa.util.MessageUtil;
+import net.nightvanilla.tpa.util.TeleportUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;

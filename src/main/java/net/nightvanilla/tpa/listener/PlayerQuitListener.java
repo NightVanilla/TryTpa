@@ -1,6 +1,6 @@
-package net.trysmp.tpa.listener;
+package net.nightvanilla.tpa.listener;
 
-import net.trysmp.tpa.TryTpa;
+import net.nightvanilla.tpa.TryTpa;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

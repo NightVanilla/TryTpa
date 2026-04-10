@@ -1,6 +1,6 @@
-package net.trysmp.tpa;
+package net.nightvanilla.tpa;
 
-import net.trysmp.tpa.redis.RedisManager;
+import net.nightvanilla.tpa.redis.RedisManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 

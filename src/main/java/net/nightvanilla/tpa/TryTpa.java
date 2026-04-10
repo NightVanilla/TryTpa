@@ -1,9 +1,9 @@
-package net.trysmp.tpa;
+package net.nightvanilla.tpa;
 
 import lombok.Getter;
-import net.trysmp.tpa.command.*;
-import net.trysmp.tpa.listener.PlayerQuitListener;
-import net.trysmp.tpa.redis.RedisManager;
+import net.nightvanilla.tpa.command.*;
+import net.nightvanilla.tpa.listener.PlayerQuitListener;
+import net.nightvanilla.tpa.redis.RedisManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 

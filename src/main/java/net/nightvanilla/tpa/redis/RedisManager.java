@@ -1,14 +1,14 @@
-package net.trysmp.tpa.redis;
+package net.nightvanilla.tpa.redis;
 
-import net.trysmp.tpa.TryTpa;
+import net.nightvanilla.tpa.TryTpa;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.ScanParams;
-import redis.clients.jedis.ScanResult;
+import redis.clients.jedis.params.ScanParams;
+import redis.clients.jedis.resps.ScanResult;
 
 import java.util.HashSet;
 import java.util.Set;

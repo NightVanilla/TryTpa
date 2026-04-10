@@ -1,7 +1,7 @@
 name: TryTpa
 version: 2.0
 api-version: 1.19
-main: net.trysmp.tpa.TryTpa
+main: net.nightvanilla.tpa.TryTpa
 author: VertrauterDavid
 website: https://vertrauterdavid.net/ & https://github.com/vertrauterdavid/
 

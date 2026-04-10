@@ -1,7 +1,7 @@
-package net.trysmp.tpa.util;
+package net.nightvanilla.tpa.util;
 
 import lombok.experimental.UtilityClass;
-import net.trysmp.tpa.TryTpa;
+import net.nightvanilla.tpa.TryTpa;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
