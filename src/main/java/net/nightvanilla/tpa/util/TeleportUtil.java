@@ -16,6 +16,17 @@ public class TeleportUtil {
 
     private static final HashMap<UUID, Location> move = new HashMap<>();
 
+    /**
+     * Teleports the player immediately without countdown or movement check.
+     * Used for cross-server arrivals where the player just joined and should
+     * be moved directly to the target location.
+     */
+    public static void teleportImmediate(Player player, Location location) {
+        player.closeInventory();
+        player.teleport(location);
+        playSound(player, "Teleport.TeleportSound");
+    }
+
     public static void teleport(Player player, Location location) {
         player.closeInventory();
 
