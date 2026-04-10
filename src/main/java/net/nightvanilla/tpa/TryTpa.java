@@ -2,9 +2,13 @@ package net.nightvanilla.tpa;
 
 import lombok.Getter;
 import net.nightvanilla.tpa.command.*;
+import net.nightvanilla.tpa.listener.PlayerJoinListener;
 import net.nightvanilla.tpa.listener.PlayerQuitListener;
 import net.nightvanilla.tpa.redis.RedisManager;
+import net.nightvanilla.tpa.util.MessageUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 @Getter
@@ -34,7 +38,43 @@ public class TryTpa extends JavaPlugin {
         new TpaHereAcceptCommand();
         new TpaAllCommand();
 
+        Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(), this);
+
+        redisManager.startSubscriber((uuid, message) -> {
+            // Deliver cross-server TPA notifications on the main thread
+            Bukkit.getScheduler().runTask(this, () -> {
+                Player player = Bukkit.getPlayer(uuid);
+                if (player == null) return;
+
+                String[] parts = message.split(":", 3);
+                if (parts.length < 2) return;
+
+                String type = parts[0];
+                String senderName = parts[1];
+
+                switch (type) {
+                    case "TPA" -> {
+                        player.sendMessage(MessageUtil.getRequest("Tpa", senderName));
+                        if (getConfig().getBoolean("Settings.Sounds.Tpa")) {
+                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
+                        }
+                    }
+                    case "TPAHERE" -> {
+                        player.sendMessage(MessageUtil.getRequest("TpaHere", senderName));
+                        if (getConfig().getBoolean("Settings.Sounds.TpaHere")) {
+                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
+                        }
+                    }
+                    case "TPAALL" -> {
+                        player.sendMessage(MessageUtil.getRequest("TpaAll", senderName));
+                        if (getConfig().getBoolean("Settings.Sounds.TpaAll")) {
+                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
+                        }
+                    }
+                }
+            });
+        });
     }
 
     @Override

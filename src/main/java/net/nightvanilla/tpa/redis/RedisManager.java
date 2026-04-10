@@ -7,20 +7,28 @@ import org.bukkit.World;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.logging.Level;
 
 public class RedisManager {
 
     private static final String KEY_PREFIX = "trytpa:";
+    private static final String ONLINE_PREFIX = KEY_PREFIX + "online:";
+    private static final String NAMES_PREFIX = KEY_PREFIX + "playernames:";
+    private static final String MSG_CHANNEL_PREFIX = KEY_PREFIX + "msg:";
 
     private final boolean enabled;
     private JedisPool pool;
+
+    private Thread subscriberThread;
+    private volatile JedisPubSub activePubSub;
 
     public RedisManager() {
         this.enabled = TryTpa.getInstance().getConfig().getBoolean("Redis.Enabled", false);
@@ -148,6 +156,24 @@ public class RedisManager {
         }
     }
 
+    public Set<UUID> getTpaAllRequesters() {
+        Set<UUID> result = new HashSet<>();
+        try (Jedis jedis = pool.getResource()) {
+            String cursor = "0";
+            ScanParams params = new ScanParams().match(KEY_PREFIX + "tpaall:req:*").count(100);
+            do {
+                ScanResult<String> scan = jedis.scan(cursor, params);
+                cursor = scan.getCursor();
+                for (String key : scan.getResult()) {
+                    result.add(UUID.fromString(key.substring((KEY_PREFIX + "tpaall:req:").length())));
+                }
+            } while (!cursor.equals("0"));
+        } catch (Exception e) {
+            log("getTpaAllRequesters", e);
+        }
+        return result;
+    }
+
     // ---- Cooldowns ----
 
     public void setCooldown(String type, UUID player, long expiryMillis) {
@@ -169,6 +195,104 @@ public class RedisManager {
         }
     }
 
+    // ---- Player registry ----
+
+    public void registerPlayer(UUID uuid, String name) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.setex(ONLINE_PREFIX + uuid, 86400, name);
+            jedis.setex(NAMES_PREFIX + name.toLowerCase(), 86400, uuid.toString());
+        } catch (Exception e) {
+            log("registerPlayer", e);
+        }
+    }
+
+    public void unregisterPlayer(UUID uuid, String name) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.del(ONLINE_PREFIX + uuid, NAMES_PREFIX + name.toLowerCase());
+        } catch (Exception e) {
+            log("unregisterPlayer", e);
+        }
+    }
+
+    public String getPlayerName(UUID uuid) {
+        try (Jedis jedis = pool.getResource()) {
+            return jedis.get(ONLINE_PREFIX + uuid);
+        } catch (Exception e) {
+            log("getPlayerName", e);
+            return null;
+        }
+    }
+
+    public UUID getPlayerUUID(String name) {
+        try (Jedis jedis = pool.getResource()) {
+            String value = jedis.get(NAMES_PREFIX + name.toLowerCase());
+            return value != null ? UUID.fromString(value) : null;
+        } catch (Exception e) {
+            log("getPlayerUUID", e);
+            return null;
+        }
+    }
+
+    public Set<String> getOnlinePlayerNames() {
+        Set<String> names = new HashSet<>();
+        try (Jedis jedis = pool.getResource()) {
+            String cursor = "0";
+            ScanParams params = new ScanParams().match(ONLINE_PREFIX + "*").count(100);
+            do {
+                ScanResult<String> scan = jedis.scan(cursor, params);
+                cursor = scan.getCursor();
+                for (String key : scan.getResult()) {
+                    String name = jedis.get(key);
+                    if (name != null) names.add(name);
+                }
+            } while (!cursor.equals("0"));
+        } catch (Exception e) {
+            log("getOnlinePlayerNames", e);
+        }
+        return names;
+    }
+
+    // ---- Cross-server messaging via pub/sub ----
+
+    public void publishToPlayer(UUID targetUUID, String message) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.publish(MSG_CHANNEL_PREFIX + targetUUID, message);
+        } catch (Exception e) {
+            log("publishToPlayer", e);
+        }
+    }
+
+    public void startSubscriber(BiConsumer<UUID, String> handler) {
+        if (!isAvailable()) return;
+        activePubSub = new JedisPubSub() {
+            @Override
+            public void onPMessage(String pattern, String channel, String message) {
+                try {
+                    UUID uuid = UUID.fromString(channel.substring(MSG_CHANNEL_PREFIX.length()));
+                    handler.accept(uuid, message);
+                } catch (Exception ignored) {}
+            }
+        };
+        subscriberThread = new Thread(() -> {
+            Jedis jedis = pool.getResource();
+            try {
+                jedis.psubscribe(activePubSub, MSG_CHANNEL_PREFIX + "*");
+            } catch (Exception e) {
+                if (isAvailable()) log("subscriber", e);
+            } finally {
+                try { jedis.close(); } catch (Exception ignored) {}
+            }
+        }, "TryTpa-Redis-Sub");
+        subscriberThread.setDaemon(true);
+        subscriberThread.start();
+    }
+
+    public void stopSubscriber() {
+        if (activePubSub != null) {
+            try { activePubSub.punsubscribe(); } catch (Exception ignored) {}
+        }
+    }
+
     // ---- Player cleanup ----
 
     public void cleanupPlayer(UUID player) {
@@ -187,6 +311,7 @@ public class RedisManager {
     }
 
     public void close() {
+        stopSubscriber();
         if (pool != null && !pool.isClosed()) {
             pool.close();
         }
