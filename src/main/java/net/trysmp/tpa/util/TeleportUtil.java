@@ -69,7 +69,7 @@ public class TeleportUtil {
                     }
                     case 0 -> {
                         player.teleport(location);
-                        playSound(player, "Teleport.CoolDownSound");
+                        playSound(player, "Teleport.TeleportSound");
                         move.remove(player.getUniqueId());
                         this.cancel();
                     }

@@ -11,10 +11,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
 
@@ -27,7 +24,7 @@ public class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return false;
 
-        if (!(player.hasPermission("trytpa.command.tpahere"))) {
+        if (!player.hasPermission("trytpa.command.tpahere")) {
             player.sendMessage(MessageUtil.get("Messages.NoPermission"));
             return false;
         }
@@ -42,7 +39,7 @@ public class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpahereaccept <player / *>"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpahereaccept <player>"));
         return false;
     }
 
@@ -51,15 +48,13 @@ public class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
 
         if (args.length == 1 && sender instanceof Player player) {
-            for (UUID uuid : TpaHereCommand.requests.keySet()) {
-                Player target = Bukkit.getPlayer(uuid);
-                if (TpaHereCommand.requests.get(uuid) == player.getUniqueId() && target != null) {
-                    list.add(target.getName());
-                }
+            for (UUID uuid : TryTpa.getInstance().getRequestStore().getTpaHereRequestersForTarget(player.getUniqueId())) {
+                Player requester = Bukkit.getPlayer(uuid);
+                if (requester != null) list.add(requester.getName());
             }
         }
 
-        return list.stream().filter(content -> content.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).sorted().toList();
+        return list.stream().filter(c -> c.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).sorted().toList();
     }
 
 }
