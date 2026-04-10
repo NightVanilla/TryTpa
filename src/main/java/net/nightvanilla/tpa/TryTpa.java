@@ -1,5 +1,7 @@
 package net.nightvanilla.tpa;
 
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import lombok.Getter;
 import net.nightvanilla.tpa.command.*;
 import net.nightvanilla.tpa.listener.PlayerJoinListener;
@@ -41,6 +43,8 @@ public class TryTpa extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(), this);
 
+        getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+
         redisManager.startSubscriber((uuid, message) -> {
             // Deliver cross-server TPA notifications on the main thread
             Bukkit.getScheduler().runTask(this, () -> {
@@ -72,9 +76,33 @@ public class TryTpa extends JavaPlugin {
                             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
                         }
                     }
+                    case "TPA_CONNECT" -> {
+                        // senderName = target server, parts[2] = acceptor's name
+                        String targetServer = senderName;
+                        String acceptorName = parts.length > 2 ? parts[2] : "";
+                        if (!acceptorName.isEmpty()) {
+                            player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replaceAll("%player%", acceptorName));
+                        }
+                        connectPlayerToServer(player, targetServer);
+                    }
+                    case "TPAHERE_ACCEPTED" -> {
+                        // senderName = acceptor's name
+                        player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replaceAll("%player%", senderName));
+                    }
                 }
             });
         });
+    }
+
+    public void connectPlayerToServer(Player player, String serverName) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeUTF("Connect");
+            out.writeUTF(serverName);
+            player.sendPluginMessage(this, "BungeeCord", out.toByteArray());
+        } catch (Exception e) {
+            getLogger().warning("Failed to connect " + player.getName() + " to " + serverName + ": " + e.getMessage());
+        }
     }
 
     @Override
