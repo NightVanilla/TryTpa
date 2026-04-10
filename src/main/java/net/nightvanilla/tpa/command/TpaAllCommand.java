@@ -89,7 +89,21 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        return new ArrayList<>();
+        List<String> list = new ArrayList<>();
+
+        if (args.length == 1) {
+            list.add("accept");
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("accept")) {
+            RequestStore store = TryTpa.getInstance().getRequestStore();
+            for (UUID uuid : store.getTpaAllRequesters()) {
+                String name = store.resolvePlayerName(uuid);
+                if (name != null) list.add(name);
+            }
+        }
+
+        return list.stream().filter(c -> c.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).sorted().toList();
     }
 
 }

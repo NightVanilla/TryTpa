@@ -3,6 +3,7 @@ package net.nightvanilla.tpa;
 import net.nightvanilla.tpa.redis.RedisManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -118,6 +119,11 @@ public class RequestStore {
         else tpaAllRequests.remove(requester);
     }
 
+    public Set<UUID> getTpaAllRequesters() {
+        if (redis.isAvailable()) return redis.getTpaAllRequesters();
+        return new HashSet<>(tpaAllRequests.keySet());
+    }
+
     public void setTpaAllCooldown(UUID player, long expiryMillis) {
         if (redis.isAvailable()) redis.setCooldown("tpaall", player, expiryMillis);
         else tpaAllCooldowns.put(player, expiryMillis);
@@ -125,6 +131,51 @@ public class RequestStore {
 
     public long getTpaAllCooldown(UUID player) {
         return redis.isAvailable() ? redis.getCooldown("tpaall", player) : tpaAllCooldowns.getOrDefault(player, 0L);
+    }
+
+    // ---- Cross-server player resolution ----
+
+    /**
+     * Returns online player names from Redis (all servers) or local Bukkit.
+     */
+    public List<String> getOnlinePlayerNames() {
+        if (redis.isAvailable()) {
+            return new ArrayList<>(redis.getOnlinePlayerNames());
+        }
+        return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
+    }
+
+    /**
+     * Resolves a UUID to a player name. Checks Redis first (cross-server), then local.
+     */
+    public String resolvePlayerName(UUID uuid) {
+        if (redis.isAvailable()) {
+            String name = redis.getPlayerName(uuid);
+            if (name != null) return name;
+        }
+        Player p = Bukkit.getPlayer(uuid);
+        return p != null ? p.getName() : null;
+    }
+
+    /**
+     * Returns true if the player with the given name is on another server (Redis knows them but not locally online).
+     */
+    public boolean isOnOtherServer(String name) {
+        if (!redis.isAvailable()) return false;
+        if (Bukkit.getPlayer(name) != null) return false;
+        return redis.getPlayerUUID(name) != null;
+    }
+
+    /**
+     * Returns the UUID for a player name, checking Redis (cross-server) and local.
+     */
+    public UUID resolvePlayerUUID(String name) {
+        if (redis.isAvailable()) {
+            UUID uuid = redis.getPlayerUUID(name);
+            if (uuid != null) return uuid;
+        }
+        Player p = Bukkit.getPlayer(name);
+        return p != null ? p.getUniqueId() : null;
     }
 
     // ---- Cleanup ----

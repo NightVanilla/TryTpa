@@ -11,6 +11,7 @@ public class PlayerQuitListener implements Listener {
     @EventHandler
     public void handle(PlayerQuitEvent event) {
         Player player = event.getPlayer();
+        TryTpa.getInstance().getRedisManager().unregisterPlayer(player.getUniqueId(), player.getName());
         TryTpa.getInstance().getRequestStore().removeAllForPlayer(player.getUniqueId());
     }
 

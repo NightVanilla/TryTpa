@@ -52,7 +52,12 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             Player target = Bukkit.getPlayer(args[0]);
+
             if (target == null) {
+                if (store.isOnOtherServer(args[0])) {
+                    player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", args[0]));
+                    return false;
+                }
                 player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
                 return false;
             }
@@ -89,14 +94,15 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
 
         if (args.length == 2 && sender instanceof Player player && args[0].equalsIgnoreCase("accept")) {
-            for (UUID uuid : TryTpa.getInstance().getRequestStore().getTpaHereRequestersForTarget(player.getUniqueId())) {
-                Player requester = Bukkit.getPlayer(uuid);
-                if (requester != null) list.add(requester.getName());
+            RequestStore store = TryTpa.getInstance().getRequestStore();
+            for (UUID uuid : store.getTpaHereRequestersForTarget(player.getUniqueId())) {
+                String name = store.resolvePlayerName(uuid);
+                if (name != null) list.add(name);
             }
         }
 
         if (args.length == 1) {
-            list.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
+            list.addAll(TryTpa.getInstance().getRequestStore().getOnlinePlayerNames());
             list.add("accept");
         }
 
@@ -104,20 +110,33 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
     }
 
     public static void accept(Player player) {
-        for (UUID requesterUUID : TryTpa.getInstance().getRequestStore().getTpaHereRequestersForTarget(player.getUniqueId())) {
+        RequestStore store = TryTpa.getInstance().getRequestStore();
+        boolean foundCrossServer = false;
+        for (UUID requesterUUID : store.getTpaHereRequestersForTarget(player.getUniqueId())) {
             Player requester = Bukkit.getPlayer(requesterUUID);
             if (requester != null) {
                 accept(player, requester.getName());
                 return;
             }
+            if (store.resolvePlayerName(requesterUUID) != null) {
+                foundCrossServer = true;
+            }
         }
-        player.sendMessage(MessageUtil.get("Messages.NoRequests"));
+        if (foundCrossServer) {
+            player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", "Requester"));
+        } else {
+            player.sendMessage(MessageUtil.get("Messages.NoRequests"));
+        }
     }
 
     public static void accept(Player player, String targetName) {
         Player target = Bukkit.getPlayer(targetName);
         if (target == null) {
-            player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
+            if (TryTpa.getInstance().getRequestStore().isOnOtherServer(targetName)) {
+                player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", targetName));
+            } else {
+                player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
+            }
             return;
         }
 

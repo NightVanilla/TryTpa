@@ -41,6 +41,7 @@ Messages:
 
   NoRequests: "%prefix%There are no requests to accept"
   Expired: "%prefix%The request has already expired or does not exist"
+  PlayerOnOtherServer: "%prefix%&#ff9900%player% is on another server"
   Sent: "%prefix%&#7cfc00Request has been sent"
 
   Removed: "%prefix%TpaAll permissions have been removed for &#ff0000%player%"

@@ -1,8 +1,8 @@
 package net.nightvanilla.tpa.command;
 
+import net.nightvanilla.tpa.RequestStore;
 import net.nightvanilla.tpa.TryTpa;
 import net.nightvanilla.tpa.util.MessageUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -55,9 +55,10 @@ public class TpaAcceptCommand implements CommandExecutor, TabCompleter {
         List<String> list = new ArrayList<>();
 
         if (args.length == 1 && sender instanceof Player player) {
-            for (UUID uuid : TryTpa.getInstance().getRequestStore().getTpaRequestersForTarget(player.getUniqueId())) {
-                Player requester = Bukkit.getPlayer(uuid);
-                if (requester != null) list.add(requester.getName());
+            RequestStore store = TryTpa.getInstance().getRequestStore();
+            for (UUID uuid : store.getTpaRequestersForTarget(player.getUniqueId())) {
+                String name = store.resolvePlayerName(uuid);
+                if (name != null) list.add(name);
             }
             list.add("*");
         }
