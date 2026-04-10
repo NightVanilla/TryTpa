@@ -58,9 +58,16 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
             Player target = Bukkit.getPlayer(args[0]);
 
             if (target == null) {
-                // Check if the player is on another server
-                if (store.isOnOtherServer(args[0])) {
-                    player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", args[0]));
+                // Try to reach a player on another server via Redis
+                UUID targetUUID = store.resolvePlayerUUID(args[0]);
+                if (targetUUID != null && TryTpa.getInstance().getRedisManager().isAvailable()) {
+                    long expiration = TryTpa.getInstance().getConfig().getLong("Settings.Expiration.Tpa");
+                    store.putTpaRequest(player.getUniqueId(), targetUUID, expiration);
+                    TryTpa.getInstance().getRedisManager().publishToPlayer(targetUUID, "TPA:" + player.getName());
+                    player.sendMessage(MessageUtil.get("Messages.Sent"));
+                    if (!player.hasPermission("trytpa.bypass.cooldown")) {
+                        store.setTpaCooldown(player.getUniqueId(), System.currentTimeMillis() + TryTpa.getInstance().getConfig().getLong("Settings.Cooldown.Tpa"));
+                    }
                     return false;
                 }
                 player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
@@ -117,7 +124,7 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
 
     public static void accept(Player player) {
         RequestStore store = TryTpa.getInstance().getRequestStore();
-        boolean foundCrossServer = false;
+        String crossServerRequester = null;
         for (UUID requesterUUID : store.getTpaRequestersForTarget(player.getUniqueId())) {
             Player requester = Bukkit.getPlayer(requesterUUID);
             if (requester != null) {
@@ -125,12 +132,14 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
                 return;
             }
             // Requester exists in Redis but not local — on another server
-            if (store.resolvePlayerName(requesterUUID) != null) {
-                foundCrossServer = true;
+            String name = store.resolvePlayerName(requesterUUID);
+            if (name != null) {
+                crossServerRequester = name;
+                break;
             }
         }
-        if (foundCrossServer) {
-            player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", "Requester"));
+        if (crossServerRequester != null) {
+            accept(player, crossServerRequester);
         } else {
             player.sendMessage(MessageUtil.get("Messages.NoRequests"));
         }
@@ -163,11 +172,26 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
     public static void accept(Player player, String targetName) {
         Player target = Bukkit.getPlayer(targetName);
         if (target == null) {
-            if (TryTpa.getInstance().getRequestStore().isOnOtherServer(targetName)) {
-                player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", targetName));
-            } else {
-                player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
+            // Requester is on another server — handle cross-server accept
+            UUID requesterUUID = TryTpa.getInstance().getRequestStore().resolvePlayerUUID(targetName);
+            if (requesterUUID != null && TryTpa.getInstance().getRedisManager().isAvailable()) {
+                RequestStore store = TryTpa.getInstance().getRequestStore();
+                UUID requestTarget = store.getTpaRequest(requesterUUID);
+                if (requestTarget == null || !requestTarget.equals(player.getUniqueId())) {
+                    player.sendMessage(MessageUtil.get("Messages.Expired"));
+                    return;
+                }
+                store.removeTpaRequest(requesterUUID);
+                // Store pending teleport: requester will TP to player (this server) after connecting
+                long ttl = TryTpa.getInstance().getConfig().getLong("Settings.Expiration.Tpa");
+                TryTpa.getInstance().getRedisManager().setPendingTpa(requesterUUID, player.getUniqueId(), ttl);
+                // Tell requester's server to connect them here and notify them
+                String thisServer = TryTpa.getInstance().getConfig().getString("Server.Name", "");
+                TryTpa.getInstance().getRedisManager().publishToPlayer(requesterUUID, "TPA_CONNECT:" + thisServer + ":" + player.getName());
+                player.sendMessage(MessageUtil.get("Messages.Accepted"));
+                return;
             }
+            player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
             return;
         }
 

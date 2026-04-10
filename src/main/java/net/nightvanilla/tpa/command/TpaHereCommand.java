@@ -54,8 +54,19 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
             Player target = Bukkit.getPlayer(args[0]);
 
             if (target == null) {
-                if (store.isOnOtherServer(args[0])) {
-                    player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", args[0]));
+                // Try to reach a player on another server via Redis
+                UUID targetUUID = store.resolvePlayerUUID(args[0]);
+                if (targetUUID != null && TryTpa.getInstance().getRedisManager().isAvailable()) {
+                    long expiration = TryTpa.getInstance().getConfig().getLong("Settings.Expiration.TpaHere");
+                    store.putTpaHereRequest(player.getUniqueId(), targetUUID, expiration);
+                    // Store this server's name so the target knows where to come back
+                    String thisServer = TryTpa.getInstance().getConfig().getString("Server.Name", "");
+                    TryTpa.getInstance().getRedisManager().setRequestServerName("tpahere", player.getUniqueId(), thisServer, expiration);
+                    TryTpa.getInstance().getRedisManager().publishToPlayer(targetUUID, "TPAHERE:" + player.getName());
+                    player.sendMessage(MessageUtil.get("Messages.Sent"));
+                    if (!player.hasPermission("trytpa.bypass.cooldown")) {
+                        store.setTpaHereCooldown(player.getUniqueId(), System.currentTimeMillis() + TryTpa.getInstance().getConfig().getLong("Settings.Cooldown.TpaHere"));
+                    }
                     return false;
                 }
                 player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
@@ -111,19 +122,21 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
 
     public static void accept(Player player) {
         RequestStore store = TryTpa.getInstance().getRequestStore();
-        boolean foundCrossServer = false;
+        String crossServerRequester = null;
         for (UUID requesterUUID : store.getTpaHereRequestersForTarget(player.getUniqueId())) {
             Player requester = Bukkit.getPlayer(requesterUUID);
             if (requester != null) {
                 accept(player, requester.getName());
                 return;
             }
-            if (store.resolvePlayerName(requesterUUID) != null) {
-                foundCrossServer = true;
+            String name = store.resolvePlayerName(requesterUUID);
+            if (name != null) {
+                crossServerRequester = name;
+                break;
             }
         }
-        if (foundCrossServer) {
-            player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", "Requester"));
+        if (crossServerRequester != null) {
+            accept(player, crossServerRequester);
         } else {
             player.sendMessage(MessageUtil.get("Messages.NoRequests"));
         }
@@ -132,11 +145,34 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
     public static void accept(Player player, String targetName) {
         Player target = Bukkit.getPlayer(targetName);
         if (target == null) {
-            if (TryTpa.getInstance().getRequestStore().isOnOtherServer(targetName)) {
-                player.sendMessage(MessageUtil.get("Messages.PlayerOnOtherServer").replaceAll("%player%", targetName));
-            } else {
-                player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
+            // Requester is on another server — handle cross-server accept
+            UUID requesterUUID = TryTpa.getInstance().getRequestStore().resolvePlayerUUID(targetName);
+            if (requesterUUID != null && TryTpa.getInstance().getRedisManager().isAvailable()) {
+                RequestStore store = TryTpa.getInstance().getRequestStore();
+                UUID requestTarget = store.getTpaHereRequest(requesterUUID);
+                if (requestTarget == null || !requestTarget.equals(player.getUniqueId())) {
+                    player.sendMessage(MessageUtil.get("Messages.Expired"));
+                    return;
+                }
+                store.removeTpaHereRequest(requesterUUID);
+                // Retrieve requester's server name (stored when the request was made)
+                String requesterServer = TryTpa.getInstance().getRedisManager().getRequestServerName("tpahere", requesterUUID);
+                TryTpa.getInstance().getRedisManager().removeRequestServerName("tpahere", requesterUUID);
+                if (requesterServer == null || requesterServer.isEmpty()) {
+                    player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
+                    return;
+                }
+                // Store pending teleport: player will TP to requester on arrival
+                long ttl = TryTpa.getInstance().getConfig().getLong("Settings.Expiration.TpaHere");
+                TryTpa.getInstance().getRedisManager().setPendingTpaHere(player.getUniqueId(), requesterUUID, ttl);
+                // Notify requester that their request was accepted
+                TryTpa.getInstance().getRedisManager().publishToPlayer(requesterUUID, "TPAHERE_ACCEPTED:" + player.getName());
+                // Connect player to requester's server
+                TryTpa.getInstance().connectPlayerToServer(player, requesterServer);
+                player.sendMessage(MessageUtil.get("Messages.Accepted"));
+                return;
             }
+            player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
             return;
         }
 

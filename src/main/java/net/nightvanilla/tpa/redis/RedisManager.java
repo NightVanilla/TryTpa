@@ -252,6 +252,89 @@ public class RedisManager {
         return names;
     }
 
+    // ---- Request origin server name ----
+
+    public void setRequestServerName(String type, UUID requester, String serverName, long ttlSeconds) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.setex(KEY_PREFIX + type + ":req:" + requester + ":server", ttlSeconds, serverName);
+        } catch (Exception e) {
+            log("setRequestServerName", e);
+        }
+    }
+
+    public String getRequestServerName(String type, UUID requester) {
+        try (Jedis jedis = pool.getResource()) {
+            return jedis.get(KEY_PREFIX + type + ":req:" + requester + ":server");
+        } catch (Exception e) {
+            log("getRequestServerName", e);
+            return null;
+        }
+    }
+
+    public void removeRequestServerName(String type, UUID requester) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.del(KEY_PREFIX + type + ":req:" + requester + ":server");
+        } catch (Exception e) {
+            log("removeRequestServerName", e);
+        }
+    }
+
+    // ---- Pending cross-server teleports ----
+
+    /** After connecting to the target server, player should teleport to targetUUID */
+    public void setPendingTpa(UUID player, UUID target, long ttlSeconds) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.setex(KEY_PREFIX + "pendingtpa:" + player, ttlSeconds, target.toString());
+        } catch (Exception e) {
+            log("setPendingTpa", e);
+        }
+    }
+
+    public UUID getPendingTpa(UUID player) {
+        try (Jedis jedis = pool.getResource()) {
+            String val = jedis.get(KEY_PREFIX + "pendingtpa:" + player);
+            return val != null ? UUID.fromString(val) : null;
+        } catch (Exception e) {
+            log("getPendingTpa", e);
+            return null;
+        }
+    }
+
+    public void removePendingTpa(UUID player) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.del(KEY_PREFIX + "pendingtpa:" + player);
+        } catch (Exception e) {
+            log("removePendingTpa", e);
+        }
+    }
+
+    /** After connecting to the requester's server, player should teleport to requesterUUID */
+    public void setPendingTpaHere(UUID player, UUID requester, long ttlSeconds) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.setex(KEY_PREFIX + "pendingtpahere:" + player, ttlSeconds, requester.toString());
+        } catch (Exception e) {
+            log("setPendingTpaHere", e);
+        }
+    }
+
+    public UUID getPendingTpaHere(UUID player) {
+        try (Jedis jedis = pool.getResource()) {
+            String val = jedis.get(KEY_PREFIX + "pendingtpahere:" + player);
+            return val != null ? UUID.fromString(val) : null;
+        } catch (Exception e) {
+            log("getPendingTpaHere", e);
+            return null;
+        }
+    }
+
+    public void removePendingTpaHere(UUID player) {
+        try (Jedis jedis = pool.getResource()) {
+            jedis.del(KEY_PREFIX + "pendingtpahere:" + player);
+        } catch (Exception e) {
+            log("removePendingTpaHere", e);
+        }
+    }
+
     // ---- Cross-server messaging via pub/sub ----
 
     public void publishToPlayer(UUID targetUUID, String message) {

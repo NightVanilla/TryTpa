@@ -96,3 +96,13 @@ Redis:
   Port: 6379
   Password: ""
   Database: 0
+
+# ---------------------------------------------------------------------------
+# Server Name - Required for cross-server teleportation (BungeeCord/Velocity)
+#
+# Set this to the exact name of THIS server as configured in BungeeCord/Velocity.
+# Example: "spawn", "survival", "afk"
+# Used to route players back to the correct server when a TpaHere is accepted.
+# ---------------------------------------------------------------------------
+Server:
+  Name: "spawn"
