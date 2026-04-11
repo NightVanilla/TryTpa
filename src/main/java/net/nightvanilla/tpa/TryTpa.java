@@ -44,8 +44,8 @@ public class TryTpa extends JavaPlugin {
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
         redisManager.startSubscriber((uuid, message) -> {
-            // Deliver cross-server TPA notifications on the main thread
-            Bukkit.getScheduler().runTask(this, () -> {
+            // Deliver cross-server TPA notifications on the global region scheduler (Folia-safe)
+            Bukkit.getGlobalRegionScheduler().run(this, task -> {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player == null) return;
 

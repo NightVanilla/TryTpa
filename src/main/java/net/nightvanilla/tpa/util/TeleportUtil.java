@@ -6,7 +6,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,58 +40,58 @@ public class TeleportUtil {
         move.put(uuid, player.getLocation());
 
         final int[] seconds = {cooldown + 1};
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                seconds[0]--;
 
-                if (Bukkit.getPlayer(uuid) == null) {
+        // Entity scheduler: runs on the player's region thread (Folia-safe)
+        // Initial delay >= 1 tick required by entity scheduler
+        player.getScheduler().runAtFixedRate(TryTpa.getInstance(), scheduledTask -> {
+            seconds[0]--;
+
+            if (Bukkit.getPlayer(uuid) == null) {
+                move.remove(uuid);
+                scheduledTask.cancel();
+                return;
+            }
+
+            if (TryTpa.getInstance().getConfig().getBoolean("Teleport.CancelOnMove")) {
+                Location moveLocation = move.get(uuid);
+                if (moveLocation != null && moveLocation.distance(player.getLocation()) > TryTpa.getInstance().getConfig().getDouble("Teleport.MaximumMoveDistance")) {
+                    player.sendMessage(MessageUtil.get("Teleport.CancelMessage"));
+                    String cancelTitle = TryTpa.getInstance().getConfig().getString("Teleport.CancelTitle.Title", "");
+                    String cancelSubTitle = TryTpa.getInstance().getConfig().getString("Teleport.CancelTitle.SubTitle", "");
+                    if (!cancelTitle.isEmpty() || !cancelSubTitle.isEmpty()) {
+                        player.sendTitle(MessageUtil.get("Teleport.CancelTitle.Title"), MessageUtil.get("Teleport.CancelTitle.SubTitle"));
+                    }
+                    playSound(player, "Teleport.CancelSound");
                     move.remove(uuid);
-                    this.cancel();
+                    scheduledTask.cancel();
                     return;
                 }
-
-                if (TryTpa.getInstance().getConfig().getBoolean("Teleport.CancelOnMove")) {
-                    Location moveLocation = move.get(uuid);
-                    if (moveLocation != null && moveLocation.distance(player.getLocation()) > TryTpa.getInstance().getConfig().getDouble("Teleport.MaximumMoveDistance")) {
-                        player.sendMessage(MessageUtil.get("Teleport.CancelMessage"));
-                        String cancelTitle = TryTpa.getInstance().getConfig().getString("Teleport.CancelTitle.Title", "");
-                        String cancelSubTitle = TryTpa.getInstance().getConfig().getString("Teleport.CancelTitle.SubTitle", "");
-                        if (!cancelTitle.isEmpty() || !cancelSubTitle.isEmpty()) {
-                            player.sendTitle(MessageUtil.get("Teleport.CancelTitle.Title"), MessageUtil.get("Teleport.CancelTitle.SubTitle"));
-                        }
-                        playSound(player, "Teleport.CancelSound");
-                        move.remove(uuid);
-                        this.cancel();
-                        return;
-                    }
-                }
-
-                if (seconds[0] > 0) {
-                    String countdownStr = String.valueOf(seconds[0]);
-                    if (!TryTpa.getInstance().getConfig().getString("Teleport.Message", "").isEmpty()) {
-                        player.sendMessage(MessageUtil.get("Teleport.Message").replace("%seconds%", countdownStr));
-                    }
-                    if (!TryTpa.getInstance().getConfig().getString("Teleport.Actionbar", "").isEmpty()) {
-                        player.sendActionBar(MessageUtil.get("Teleport.Actionbar").replace("%seconds%", countdownStr));
-                    }
-                    String title = TryTpa.getInstance().getConfig().getString("Teleport.Title.Title", "");
-                    String subTitle = TryTpa.getInstance().getConfig().getString("Teleport.Title.SubTitle", "");
-                    if (!title.isEmpty() || !subTitle.isEmpty()) {
-                        player.sendTitle(
-                                MessageUtil.get("Teleport.Title.Title").replace("%seconds%", countdownStr),
-                                MessageUtil.get("Teleport.Title.SubTitle").replace("%seconds%", countdownStr)
-                        );
-                    }
-                    playSound(player, "Teleport.CoolDownSound");
-                } else {
-                    player.teleport(location);
-                    playSound(player, "Teleport.TeleportSound");
-                    move.remove(uuid);
-                    this.cancel();
-                }
             }
-        }.runTaskTimer(TryTpa.getInstance(), 0, 20);
+
+            if (seconds[0] > 0) {
+                String countdownStr = String.valueOf(seconds[0]);
+                if (!TryTpa.getInstance().getConfig().getString("Teleport.Message", "").isEmpty()) {
+                    player.sendMessage(MessageUtil.get("Teleport.Message").replace("%seconds%", countdownStr));
+                }
+                if (!TryTpa.getInstance().getConfig().getString("Teleport.Actionbar", "").isEmpty()) {
+                    player.sendActionBar(MessageUtil.get("Teleport.Actionbar").replace("%seconds%", countdownStr));
+                }
+                String title = TryTpa.getInstance().getConfig().getString("Teleport.Title.Title", "");
+                String subTitle = TryTpa.getInstance().getConfig().getString("Teleport.Title.SubTitle", "");
+                if (!title.isEmpty() || !subTitle.isEmpty()) {
+                    player.sendTitle(
+                            MessageUtil.get("Teleport.Title.Title").replace("%seconds%", countdownStr),
+                            MessageUtil.get("Teleport.Title.SubTitle").replace("%seconds%", countdownStr)
+                    );
+                }
+                playSound(player, "Teleport.CoolDownSound");
+            } else {
+                player.teleport(location);
+                playSound(player, "Teleport.TeleportSound");
+                move.remove(uuid);
+                scheduledTask.cancel();
+            }
+        }, () -> move.remove(uuid), 1L, 20L);
     }
 
     private static void playSound(Player player, String key) {
