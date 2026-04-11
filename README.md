@@ -3,12 +3,12 @@
 <hr>
 
 ### Installation
-1. Download jar from [here](https://github.com/TrySmp/TryTpa/releases/latest)
+1. Download jar from [here](https://github.com/NightVanilla/TryTpa/releases)
 2. Put the jar in your plugins folder
 3. Restart your server (not reload)
 
 ### Update
-1. Download the new jar from [here](https://github.com/TrySmp/TryTpa/releases/latest)
+1. Download the new jar from [here](https://github.com/NightVanilla/TryTpa/releases)
 2. Replace the old jar with the new one
 3. Delete the old `config.yml` and restart your server
 
