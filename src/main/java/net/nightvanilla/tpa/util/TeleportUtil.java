@@ -22,8 +22,7 @@ public class TeleportUtil {
      */
     public static void teleportImmediate(Player player, Location location) {
         player.closeInventory();
-        player.teleport(location);
-        playSound(player, "Teleport.TeleportSound");
+        player.teleportAsync(location).thenRun(() -> playSound(player, "Teleport.TeleportSound"));
     }
 
     public static void teleport(Player player, Location location) {
@@ -31,8 +30,7 @@ public class TeleportUtil {
 
         int cooldown = TryTpa.getInstance().getConfig().getInt("Teleport.CoolDown");
         if (cooldown < 1 || player.hasPermission("trytpa.bypass.teleport")) {
-            player.teleport(location);
-            playSound(player, "Teleport.TeleportSound");
+            player.teleportAsync(location).thenRun(() -> playSound(player, "Teleport.TeleportSound"));
             return;
         }
 
@@ -86,8 +84,7 @@ public class TeleportUtil {
                 }
                 playSound(player, "Teleport.CoolDownSound");
             } else {
-                player.teleport(location);
-                playSound(player, "Teleport.TeleportSound");
+                player.teleportAsync(location).thenRun(() -> playSound(player, "Teleport.TeleportSound"));
                 move.remove(uuid);
                 scheduledTask.cancel();
             }
