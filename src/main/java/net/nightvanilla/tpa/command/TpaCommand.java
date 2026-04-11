@@ -20,8 +20,9 @@ import java.util.*;
 public class TpaCommand implements CommandExecutor, TabCompleter {
 
     public TpaCommand() {
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpa")).setExecutor(this);
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpa")).setTabCompleter(this);
+        var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand("tpa"));
+        cmd.setExecutor(this);
+        cmd.setTabCompleter(this);
     }
 
     @Override
@@ -50,7 +51,7 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
         RequestStore store = TryTpa.getInstance().getRequestStore();
         long delay = store.getTpaCooldown(player.getUniqueId());
         if (delay > System.currentTimeMillis()) {
-            player.sendMessage(MessageUtil.get("Messages.CommandDelay").replaceAll("%time%", DateUtil.secondsToTime((delay - System.currentTimeMillis()) / 1000)));
+            player.sendMessage(MessageUtil.get("Messages.CommandDelay").replace("%time%", DateUtil.secondsToTime((delay - System.currentTimeMillis()) / 1000)));
             return false;
         }
 
@@ -96,8 +97,8 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpa <player>"));
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpa accept <player / *>"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpa <player>"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpa accept <player / *>"));
         return false;
     }
 
@@ -161,7 +162,7 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
         }
 
         for (Player requester : toTeleport) {
-            requester.sendMessage(MessageUtil.get("Messages.AcceptedOther").replaceAll("%player%", player.getName()));
+            requester.sendMessage(MessageUtil.get("Messages.AcceptedOther").replace("%player%", player.getName()));
             store.removeTpaRequest(requester.getUniqueId());
             TeleportUtil.teleport(requester, player.getLocation());
         }
@@ -205,7 +206,7 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
 
         if (requestTarget != null && requestTarget.equals(player.getUniqueId())) {
             store.removeTpaRequest(target.getUniqueId());
-            target.sendMessage(MessageUtil.get("Messages.AcceptedOther").replaceAll("%player%", player.getName()));
+            target.sendMessage(MessageUtil.get("Messages.AcceptedOther").replace("%player%", player.getName()));
             TeleportUtil.teleport(target, player.getLocation());
             player.sendMessage(MessageUtil.get("Messages.Accepted"));
         } else {

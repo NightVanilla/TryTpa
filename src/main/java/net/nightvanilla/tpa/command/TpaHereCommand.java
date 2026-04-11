@@ -20,8 +20,9 @@ import java.util.*;
 public class TpaHereCommand implements CommandExecutor, TabCompleter {
 
     public TpaHereCommand() {
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpahere")).setExecutor(this);
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpahere")).setTabCompleter(this);
+        var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand("tpahere"));
+        cmd.setExecutor(this);
+        cmd.setTabCompleter(this);
     }
 
     @Override
@@ -46,7 +47,7 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
         RequestStore store = TryTpa.getInstance().getRequestStore();
         long delay = store.getTpaHereCooldown(player.getUniqueId());
         if (delay > System.currentTimeMillis()) {
-            player.sendMessage(MessageUtil.get("Messages.CommandDelay").replaceAll("%time%", DateUtil.secondsToTime((delay - System.currentTimeMillis()) / 1000)));
+            player.sendMessage(MessageUtil.get("Messages.CommandDelay").replace("%time%", DateUtil.secondsToTime((delay - System.currentTimeMillis()) / 1000)));
             return false;
         }
 
@@ -95,8 +96,8 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpahere <player>"));
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpahere accept <player>"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpahere <player>"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpahere accept <player>"));
         return false;
     }
 
@@ -186,7 +187,7 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
 
         if (requestTarget != null && requestTarget.equals(player.getUniqueId())) {
             store.removeTpaHereRequest(target.getUniqueId());
-            target.sendMessage(MessageUtil.get("Messages.AcceptedOther").replaceAll("%player%", player.getName()));
+            target.sendMessage(MessageUtil.get("Messages.AcceptedOther").replace("%player%", player.getName()));
             player.sendMessage(MessageUtil.get("Messages.Accepted"));
             TeleportUtil.teleport(player, target.getLocation());
         } else {

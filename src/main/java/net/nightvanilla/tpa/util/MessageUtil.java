@@ -10,7 +10,7 @@ public class MessageUtil {
 
     public static String get(String key) {
         return ColorUtil.color(TryTpa.getInstance().getConfig().getString(key, ""))
-                .replaceAll("%prefix%", getPrefix());
+                .replace("%prefix%", getPrefix());
     }
 
     public static String getPrefix() {
@@ -22,10 +22,10 @@ public class MessageUtil {
         String click = TryTpa.getInstance().getConfig().getString("Messages.Request." + type + ".Click", "");
         String clickHover = TryTpa.getInstance().getConfig().getString("Messages.Request." + type + ".ClickHover", null);
 
-        return ColorUtil.colorComponent(message.replaceAll("%player%", player)).replaceText((b) -> b.matchLiteral("%click%").replacement(
+        return ColorUtil.colorComponent(message.replace("%player%", player)).replaceText((b) -> b.matchLiteral("%click%").replacement(
                 ColorUtil.colorComponent(click)
                         .clickEvent(ClickEvent.runCommand("/" + type.toLowerCase() + " accept " + player))
-                        .hoverEvent((clickHover == null || clickHover.equalsIgnoreCase("") ? null : ColorUtil.colorComponent(clickHover)))
+                        .hoverEvent((clickHover == null || clickHover.isEmpty() ? null : ColorUtil.colorComponent(clickHover)))
         ));
     }
 

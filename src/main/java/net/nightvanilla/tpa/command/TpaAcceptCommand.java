@@ -16,11 +16,11 @@ import java.util.*;
 public class TpaAcceptCommand implements CommandExecutor, TabCompleter {
 
     public TpaAcceptCommand() {
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaccept")).setExecutor(this);
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaccept")).setTabCompleter(this);
-
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaaccept")).setExecutor(this);
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaaccept")).setTabCompleter(this);
+        for (var name : List.of("tpaccept", "tpaaccept")) {
+            var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand(name));
+            cmd.setExecutor(this);
+            cmd.setTabCompleter(this);
+        }
     }
 
     @Override
@@ -46,7 +46,7 @@ public class TpaAcceptCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpaccept <player / *>"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpaccept <player / *>"));
         return false;
     }
 

@@ -22,8 +22,9 @@ import java.util.*;
 public class TpaAllCommand implements CommandExecutor, TabCompleter {
 
     public TpaAllCommand() {
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaall")).setExecutor(this);
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaall")).setTabCompleter(this);
+        var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand("tpaall"));
+        cmd.setExecutor(this);
+        cmd.setTabCompleter(this);
     }
 
     @Override
@@ -55,7 +56,7 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
         RequestStore store = TryTpa.getInstance().getRequestStore();
         long delay = store.getTpaAllCooldown(player.getUniqueId());
         if (delay > System.currentTimeMillis()) {
-            player.sendMessage(MessageUtil.get("Messages.CommandDelay").replaceAll("%time%", DateUtil.secondsToTime((delay - System.currentTimeMillis()) / 1000)));
+            player.sendMessage(MessageUtil.get("Messages.CommandDelay").replace("%time%", DateUtil.secondsToTime((delay - System.currentTimeMillis()) / 1000)));
             return false;
         }
 
@@ -83,7 +84,7 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpaall"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpaall"));
         return false;
     }
 
