@@ -58,6 +58,10 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
                 // Try to reach a player on another server via Redis
                 UUID targetUUID = store.resolvePlayerUUID(args[0]);
                 if (targetUUID != null && TryTpa.getInstance().getRedisManager().isAvailable()) {
+                    if (store.isTpaHereDisabled(targetUUID)) {
+                        player.sendMessage(MessageUtil.get("Messages.TpaHereDisabledByTarget").replace("%player%", args[0]));
+                        return false;
+                    }
                     long expiration = TryTpa.getInstance().getConfig().getLong("Settings.Expiration.TpaHere");
                     store.putTpaHereRequest(player.getUniqueId(), targetUUID, expiration);
                     // Store this server's name so the target knows where to come back
@@ -76,6 +80,11 @@ public class TpaHereCommand implements CommandExecutor, TabCompleter {
 
             if (player.equals(target)) {
                 player.sendMessage(MessageUtil.get("Messages.NotYourself"));
+                return false;
+            }
+
+            if (store.isTpaHereDisabled(target.getUniqueId())) {
+                player.sendMessage(MessageUtil.get("Messages.TpaHereDisabledByTarget").replace("%player%", target.getName()));
                 return false;
             }
 

@@ -64,7 +64,7 @@ public class TpaAllCommand implements CommandExecutor, TabCompleter {
             Component message = MessageUtil.getRequest("TpaAll", player.getName());
 
             for (Player target : Bukkit.getOnlinePlayers()) {
-                if (!target.equals(player)) {
+                if (!target.equals(player) && !store.isTpaAllDisabled(target.getUniqueId())) {
                     target.sendMessage(message);
                     if (TryTpa.getInstance().getConfig().getBoolean("Settings.Sounds.TpaAll")) {
                         target.playSound(target.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);

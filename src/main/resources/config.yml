@@ -46,6 +46,18 @@ Messages:
 
   Removed: "%prefix%TpaAll permissions have been removed for &#ff0000%player%"
 
+  TpaDisabledByTarget: "%prefix%&#ff0000%player% has disabled TPA requests"
+  TpaHereDisabledByTarget: "%prefix%&#ff0000%player% has disabled TpaHere requests"
+  TpaAllDisabledByTarget: "%prefix%&#ff0000%player% has disabled TpaAll requests"
+
+  Toggle:
+    TpaEnabled: "%prefix%&#7cfc00TPA requests are now enabled"
+    TpaDisabled: "%prefix%&#ff0000TPA requests are now disabled"
+    TpaHereEnabled: "%prefix%&#7cfc00TpaHere requests are now enabled"
+    TpaHereDisabled: "%prefix%&#ff0000TpaHere requests are now disabled"
+    TpaAllEnabled: "%prefix%&#7cfc00TpaAll requests are now enabled"
+    TpaAllDisabled: "%prefix%&#ff0000TpaAll requests are now disabled"
+
   # 'Message' is the full message sent to the player, should contain the %click% placeholder
   # 'Click' is the message with the click action
   Request:

@@ -16,6 +16,9 @@ public class RequestStore {
     private final Map<UUID, Long> tpaCooldowns = new ConcurrentHashMap<>();
     private final Map<UUID, Long> tpaHereCooldowns = new ConcurrentHashMap<>();
     private final Map<UUID, Long> tpaAllCooldowns = new ConcurrentHashMap<>();
+    private final Set<UUID> tpaDisabled = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> tpaHereDisabled = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> tpaAllDisabled = ConcurrentHashMap.newKeySet();
 
     private final RedisManager redis;
 
@@ -176,6 +179,35 @@ public class RequestStore {
         }
         Player p = Bukkit.getPlayer(name);
         return p != null ? p.getUniqueId() : null;
+    }
+
+    // ---- Toggle ----
+
+    public void setTpaToggle(UUID player, boolean disabled) {
+        if (redis.isAvailable()) redis.setToggle("tpa", player, disabled);
+        else if (disabled) tpaDisabled.add(player); else tpaDisabled.remove(player);
+    }
+
+    public boolean isTpaDisabled(UUID player) {
+        return redis.isAvailable() ? redis.isToggled("tpa", player) : tpaDisabled.contains(player);
+    }
+
+    public void setTpaHereToggle(UUID player, boolean disabled) {
+        if (redis.isAvailable()) redis.setToggle("tpahere", player, disabled);
+        else if (disabled) tpaHereDisabled.add(player); else tpaHereDisabled.remove(player);
+    }
+
+    public boolean isTpaHereDisabled(UUID player) {
+        return redis.isAvailable() ? redis.isToggled("tpahere", player) : tpaHereDisabled.contains(player);
+    }
+
+    public void setTpaAllToggle(UUID player, boolean disabled) {
+        if (redis.isAvailable()) redis.setToggle("tpaall", player, disabled);
+        else if (disabled) tpaAllDisabled.add(player); else tpaAllDisabled.remove(player);
+    }
+
+    public boolean isTpaAllDisabled(UUID player) {
+        return redis.isAvailable() ? redis.isToggled("tpaall", player) : tpaAllDisabled.contains(player);
     }
 
     // ---- Cleanup ----

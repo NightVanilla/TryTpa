@@ -14,3 +14,6 @@ commands:
   tpahere:
   tpahereaccept:
   tpaall:
+  tpatoggle:
+  tpaheretoggle:
+  tpaalltoggle:

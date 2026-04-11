@@ -62,6 +62,10 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
                 // Try to reach a player on another server via Redis
                 UUID targetUUID = store.resolvePlayerUUID(args[0]);
                 if (targetUUID != null && TryTpa.getInstance().getRedisManager().isAvailable()) {
+                    if (store.isTpaDisabled(targetUUID)) {
+                        player.sendMessage(MessageUtil.get("Messages.TpaDisabledByTarget").replace("%player%", args[0]));
+                        return false;
+                    }
                     long expiration = TryTpa.getInstance().getConfig().getLong("Settings.Expiration.Tpa");
                     store.putTpaRequest(player.getUniqueId(), targetUUID, expiration);
                     TryTpa.getInstance().getRedisManager().publishToPlayer(targetUUID, "TPA:" + player.getName());
@@ -77,6 +81,11 @@ public class TpaCommand implements CommandExecutor, TabCompleter {
 
             if (player.equals(target)) {
                 player.sendMessage(MessageUtil.get("Messages.NotYourself"));
+                return false;
+            }
+
+            if (store.isTpaDisabled(target.getUniqueId())) {
+                player.sendMessage(MessageUtil.get("Messages.TpaDisabledByTarget").replace("%player%", target.getName()));
                 return false;
             }
 

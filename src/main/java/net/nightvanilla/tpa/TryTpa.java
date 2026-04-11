@@ -37,6 +37,9 @@ public class TryTpa extends JavaPlugin {
         new TpaHereCommand();
         new TpaHereAcceptCommand();
         new TpaAllCommand();
+        new TpaToggleCommand();
+        new TpaHereToggleCommand();
+        new TpaAllToggleCommand();
 
         Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(), this);

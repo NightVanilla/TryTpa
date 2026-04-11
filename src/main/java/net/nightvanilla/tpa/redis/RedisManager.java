@@ -376,6 +376,31 @@ public class RedisManager {
         }
     }
 
+    // ---- Toggle state ----
+
+    public void setToggle(String type, UUID player, boolean disabled) {
+        String key = KEY_PREFIX + "toggle:" + type + ":" + player;
+        try (Jedis jedis = pool.getResource()) {
+            if (disabled) {
+                jedis.set(key, "1");
+            } else {
+                jedis.del(key);
+            }
+        } catch (Exception e) {
+            log("setToggle", e);
+        }
+    }
+
+    public boolean isToggled(String type, UUID player) {
+        String key = KEY_PREFIX + "toggle:" + type + ":" + player;
+        try (Jedis jedis = pool.getResource()) {
+            return jedis.exists(key);
+        } catch (Exception e) {
+            log("isToggled", e);
+            return false;
+        }
+    }
+
     // ---- Player cleanup ----
 
     public void cleanupPlayer(UUID player) {
