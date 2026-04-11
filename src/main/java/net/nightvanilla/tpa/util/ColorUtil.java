@@ -11,9 +11,10 @@ import java.util.regex.Pattern;
 @UtilityClass
 public class ColorUtil {
 
+    private static final Pattern HEX_PATTERN = Pattern.compile("&#([A-Fa-f0-9]{6})");
+
     public static String color(String message) {
-        Pattern pattern = Pattern.compile("&#([A-Fa-f0-9]{6})");
-        Matcher matcher = pattern.matcher(message);
+        Matcher matcher = HEX_PATTERN.matcher(message);
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
             matcher.appendReplacement(buffer, ChatColor.of("#" + matcher.group(1)).toString());
@@ -24,8 +25,7 @@ public class ColorUtil {
 
     public static Component colorComponent(String message) {
         message = message.replaceAll("&([0-9a-fk-or])", "§$1");
-        Pattern pattern = Pattern.compile("&#([A-Fa-f0-9]{6})");
-        Matcher matcher = pattern.matcher(message);
+        Matcher matcher = HEX_PATTERN.matcher(message);
         StringBuilder buffer = new StringBuilder();
 
         while (matcher.find()) {

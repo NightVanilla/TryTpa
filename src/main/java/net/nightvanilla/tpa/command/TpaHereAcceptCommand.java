@@ -16,8 +16,9 @@ import java.util.*;
 public class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
 
     public TpaHereAcceptCommand() {
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpahereaccept")).setExecutor(this);
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("tpahereaccept")).setTabCompleter(this);
+        var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand("tpahereaccept"));
+        cmd.setExecutor(this);
+        cmd.setTabCompleter(this);
     }
 
     @Override
@@ -39,7 +40,7 @@ public class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
             return false;
         }
 
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "tpahereaccept <player>"));
+        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpahereaccept <player>"));
         return false;
     }
 

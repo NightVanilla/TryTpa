@@ -16,8 +16,9 @@ import java.util.*;
 public class RemoveTpaAllCommand implements CommandExecutor, TabCompleter {
 
     public RemoveTpaAllCommand() {
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("removetpaall")).setExecutor(this);
-        Objects.requireNonNull(TryTpa.getInstance().getCommand("removetpaall")).setTabCompleter(this);
+        var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand("removetpaall"));
+        cmd.setExecutor(this);
+        cmd.setTabCompleter(this);
     }
 
     @Override
@@ -39,13 +40,15 @@ public class RemoveTpaAllCommand implements CommandExecutor, TabCompleter {
                     }
 
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player + " permission settemp trytpa.command.tpaall false " + days + "d");
-                    sender.sendMessage(MessageUtil.get("Messages.Removed").replaceAll("%player%", player));
+                    sender.sendMessage(MessageUtil.get("Messages.Removed").replace("%player%", player));
                     return false;
                 }
-            } catch (NumberFormatException ignored) { }
+            } catch (NumberFormatException e) {
+                TryTpa.getInstance().getLogger().warning("Invalid days argument for /removetpaall: '" + args[1] + "'");
+            }
         }
 
-        sender.sendMessage(MessageUtil.get("Messages.CommandSyntax").replaceAll("%command%", "removetpaall <player> <days>"));
+        sender.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "removetpaall <player> <days>"));
         return false;
     }
 

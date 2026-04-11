@@ -19,10 +19,8 @@ public class TryTpa extends JavaPlugin {
     @Getter
     private static TryTpa instance;
 
-    @Getter
     private RedisManager redisManager;
 
-    @Getter
     private RequestStore requestStore;
 
     @Override
@@ -46,8 +44,8 @@ public class TryTpa extends JavaPlugin {
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
         redisManager.startSubscriber((uuid, message) -> {
-            // Deliver cross-server TPA notifications on the main thread
-            Bukkit.getScheduler().runTask(this, () -> {
+            // Deliver cross-server TPA notifications on the global region scheduler (Folia-safe)
+            Bukkit.getGlobalRegionScheduler().run(this, task -> {
                 Player player = Bukkit.getPlayer(uuid);
                 if (player == null) return;
 
@@ -81,13 +79,13 @@ public class TryTpa extends JavaPlugin {
                         String targetServer = senderName;
                         String acceptorName = parts.length > 2 ? parts[2] : "";
                         if (!acceptorName.isEmpty()) {
-                            player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replaceAll("%player%", acceptorName));
+                            player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replace("%player%", acceptorName));
                         }
                         connectPlayerToServer(player, targetServer);
                     }
                     case "TPAHERE_ACCEPTED" -> {
                         // senderName = acceptor's name
-                        player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replaceAll("%player%", senderName));
+                        player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replace("%player%", senderName));
                     }
                 }
             });

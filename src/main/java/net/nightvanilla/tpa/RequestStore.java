@@ -30,7 +30,7 @@ public class RequestStore {
             redis.setRequest("tpa", requester, target, expirationSeconds);
         } else {
             tpaRequests.put(requester, target);
-            Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> tpaRequests.remove(requester), 20 * expirationSeconds);
+            Bukkit.getGlobalRegionScheduler().runDelayed(TryTpa.getInstance(), task -> tpaRequests.remove(requester), 20 * expirationSeconds);
         }
     }
 
@@ -68,7 +68,7 @@ public class RequestStore {
             redis.setRequest("tpahere", requester, target, expirationSeconds);
         } else {
             tpaHereRequests.put(requester, target);
-            Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> tpaHereRequests.remove(requester), 20 * expirationSeconds);
+            Bukkit.getGlobalRegionScheduler().runDelayed(TryTpa.getInstance(), task -> tpaHereRequests.remove(requester), 20 * expirationSeconds);
         }
     }
 
@@ -106,7 +106,7 @@ public class RequestStore {
             redis.setTpaAllRequest(requester, location, expirationSeconds);
         } else {
             tpaAllRequests.put(requester, location);
-            Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> tpaAllRequests.remove(requester), 20 * expirationSeconds);
+            Bukkit.getGlobalRegionScheduler().runDelayed(TryTpa.getInstance(), task -> tpaAllRequests.remove(requester), 20 * expirationSeconds);
         }
     }
 

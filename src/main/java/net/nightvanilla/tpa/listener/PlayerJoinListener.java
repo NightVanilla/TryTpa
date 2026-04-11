@@ -26,14 +26,15 @@ public class PlayerJoinListener implements Listener {
         UUID tpaTarget = redis.getPendingTpa(player.getUniqueId());
         if (tpaTarget != null) {
             redis.removePendingTpa(player.getUniqueId());
-            Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> {
+            // Use entity scheduler for player-bound delayed task (Folia-safe)
+            player.getScheduler().runDelayed(TryTpa.getInstance(), scheduledTask -> {
                 Player target = Bukkit.getPlayer(tpaTarget);
                 if (target != null) {
                     TeleportUtil.teleportImmediate(player, target.getLocation());
                 } else {
                     player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
                 }
-            }, 5L);
+            }, null, 5L);
             return;
         }
 
@@ -41,14 +42,14 @@ public class PlayerJoinListener implements Listener {
         UUID tpaHereRequester = redis.getPendingTpaHere(player.getUniqueId());
         if (tpaHereRequester != null) {
             redis.removePendingTpaHere(player.getUniqueId());
-            Bukkit.getScheduler().runTaskLater(TryTpa.getInstance(), () -> {
+            player.getScheduler().runDelayed(TryTpa.getInstance(), scheduledTask -> {
                 Player requester = Bukkit.getPlayer(tpaHereRequester);
                 if (requester != null) {
                     TeleportUtil.teleportImmediate(player, requester.getLocation());
                 } else {
                     player.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
                 }
-            }, 5L);
+            }, null, 5L);
         }
     }
 
