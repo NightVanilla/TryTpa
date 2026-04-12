@@ -139,11 +139,12 @@ public class RequestStore {
     // ---- Cross-server player resolution ----
 
     /**
-     * Returns online player names from Redis (all servers) or local Bukkit.
+     * Returns online player names from the in-memory cache (populated async) or local Bukkit.
+     * Safe to call from the main thread — no blocking I/O.
      */
     public List<String> getOnlinePlayerNames() {
         if (redis.isAvailable()) {
-            return new ArrayList<>(redis.getOnlinePlayerNames());
+            return new ArrayList<>(redis.getCachedPlayerNames());
         }
         return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
     }
