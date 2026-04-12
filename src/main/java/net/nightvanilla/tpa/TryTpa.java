@@ -13,6 +13,8 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.concurrent.TimeUnit;
+
 @Getter
 public class TryTpa extends JavaPlugin {
 
@@ -30,6 +32,12 @@ public class TryTpa extends JavaPlugin {
 
         redisManager = new RedisManager();
         requestStore = new RequestStore(redisManager);
+
+        // Refresh the cross-server player name cache every 5 seconds on an async thread.
+        // Tab completion reads from this cache so it never blocks the main thread on Redis I/O.
+        Bukkit.getAsyncScheduler().runAtFixedRate(this,
+                task -> redisManager.refreshPlayerNamesCache(),
+                0, 5, TimeUnit.SECONDS);
 
         new RemoveTpaAllCommand();
         new TpaCommand();

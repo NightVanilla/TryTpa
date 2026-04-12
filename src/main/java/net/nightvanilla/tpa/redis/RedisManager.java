@@ -11,6 +11,7 @@ import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -29,6 +30,9 @@ public class RedisManager {
 
     private Thread subscriberThread;
     private volatile JedisPubSub activePubSub;
+
+    /** Cached set of online player names across all servers — refreshed async, never blocks the main thread. */
+    private volatile Set<String> cachedPlayerNames = Collections.emptySet();
 
     public RedisManager() {
         this.enabled = TryTpa.getInstance().getConfig().getBoolean("Redis.Enabled", false);
@@ -233,6 +237,13 @@ public class RedisManager {
         }
     }
 
+    /**
+     * Fetches all online player names from Redis by scanning the online-prefix keys.
+     * <p>
+     * <b>Blocking I/O — never call from the main server thread.</b>
+     * Use {@link #getCachedPlayerNames()} for main-thread access and schedule
+     * {@link #refreshPlayerNamesCache()} on an async task to keep the cache fresh.
+     */
     public Set<String> getOnlinePlayerNames() {
         Set<String> names = new HashSet<>();
         try (Jedis jedis = pool.getResource()) {
@@ -250,6 +261,23 @@ public class RedisManager {
             log("getOnlinePlayerNames", e);
         }
         return names;
+    }
+
+    /**
+     * Refreshes the in-memory player name cache from Redis.
+     * Must be called from an async (non-main) thread.
+     */
+    public void refreshPlayerNamesCache() {
+        if (!isAvailable()) return;
+        cachedPlayerNames = Collections.unmodifiableSet(getOnlinePlayerNames());
+    }
+
+    /**
+     * Returns the most-recently cached set of online player names.
+     * Safe to call from the main thread — no I/O.
+     */
+    public Set<String> getCachedPlayerNames() {
+        return cachedPlayerNames;
     }
 
     // ---- Request origin server name ----
