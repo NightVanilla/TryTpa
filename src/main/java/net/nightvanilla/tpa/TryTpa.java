@@ -1,124 +1,95 @@
 package net.nightvanilla.tpa;
 
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
 import lombok.Getter;
-import net.nightvanilla.tpa.command.*;
+import net.nightvanilla.tpa.command.RemoveTpaAllCommand;
+import net.nightvanilla.tpa.command.TpaAcceptCommand;
+import net.nightvanilla.tpa.command.TpaAllCommand;
+import net.nightvanilla.tpa.command.TpaCommand;
+import net.nightvanilla.tpa.command.TpaHereAcceptCommand;
+import net.nightvanilla.tpa.command.TpaHereCommand;
+import net.nightvanilla.tpa.command.TpaToggleCommand;
+import net.nightvanilla.tpa.config.Settings;
 import net.nightvanilla.tpa.listener.PlayerJoinListener;
 import net.nightvanilla.tpa.listener.PlayerQuitListener;
 import net.nightvanilla.tpa.redis.RedisManager;
-import net.nightvanilla.tpa.util.MessageUtil;
+import net.nightvanilla.tpa.request.RequestStore;
+import net.nightvanilla.tpa.service.PubSubHandler;
+import net.nightvanilla.tpa.service.TpaService;
 import org.bukkit.Bukkit;
-import org.bukkit.Sound;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.concurrent.TimeUnit;
 
 @Getter
-public class TryTpa extends JavaPlugin {
+public final class TryTpa extends JavaPlugin {
 
     @Getter
     private static TryTpa instance;
 
+    private Settings settings;
     private RedisManager redisManager;
-
     private RequestStore requestStore;
+    private TpaService tpaService;
 
     @Override
     public void onEnable() {
-        saveDefaultConfig();
         instance = this;
 
-        redisManager = new RedisManager();
-        requestStore = new RequestStore(redisManager);
+        saveDefaultConfig();
+        this.settings = new Settings(getConfig());
+        this.redisManager = new RedisManager(settings);
+        this.requestStore = new RequestStore(redisManager);
+        this.tpaService = new TpaService(this, settings, requestStore, redisManager);
 
-        // Refresh the cross-server player name cache every 5 seconds on an async thread.
-        // Tab completion reads from this cache so it never blocks the main thread on Redis I/O.
-        Bukkit.getAsyncScheduler().runAtFixedRate(this,
-                task -> redisManager.refreshPlayerNamesCache(),
-                0, 5, TimeUnit.SECONDS);
+        registerCommands();
+        registerListeners();
+        registerPluginChannels();
+        startCaches();
+        startPubSub();
+    }
 
+    @Override
+    public void onDisable() {
+        if (redisManager != null) redisManager.close();
+    }
+
+    /** Delegates Bungee-Connect plugin messages to {@link TpaService}. */
+    public void connectPlayerToServer(org.bukkit.entity.Player player, String serverName) {
+        tpaService.connectPlayerToServer(player, serverName);
+    }
+
+    // ---------------------------------------------------------------------
+
+    private void registerCommands() {
         new RemoveTpaAllCommand();
         new TpaCommand();
         new TpaAcceptCommand();
         new TpaHereCommand();
         new TpaHereAcceptCommand();
         new TpaAllCommand();
-        new TpaToggleCommand();
-        new TpaHereToggleCommand();
-        new TpaAllToggleCommand();
+        TpaToggleCommand.registerAll();
+    }
 
+    private void registerListeners() {
         Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(), this);
         Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(), this);
+    }
 
+    private void registerPluginChannels() {
         getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
-
-        redisManager.startSubscriber((uuid, message) -> {
-            // Deliver cross-server TPA notifications on the global region scheduler (Folia-safe)
-            Bukkit.getGlobalRegionScheduler().run(this, task -> {
-                Player player = Bukkit.getPlayer(uuid);
-                if (player == null) return;
-
-                String[] parts = message.split(":", 3);
-                if (parts.length < 2) return;
-
-                String type = parts[0];
-                String senderName = parts[1];
-
-                switch (type) {
-                    case "TPA" -> {
-                        player.sendMessage(MessageUtil.getRequest("Tpa", senderName));
-                        if (getConfig().getBoolean("Settings.Sounds.Tpa")) {
-                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
-                        }
-                    }
-                    case "TPAHERE" -> {
-                        player.sendMessage(MessageUtil.getRequest("TpaHere", senderName));
-                        if (getConfig().getBoolean("Settings.Sounds.TpaHere")) {
-                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
-                        }
-                    }
-                    case "TPAALL" -> {
-                        player.sendMessage(MessageUtil.getRequest("TpaAll", senderName));
-                        if (getConfig().getBoolean("Settings.Sounds.TpaAll")) {
-                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 5, 5);
-                        }
-                    }
-                    case "TPA_CONNECT" -> {
-                        // senderName = target server, parts[2] = acceptor's name
-                        String targetServer = senderName;
-                        String acceptorName = parts.length > 2 ? parts[2] : "";
-                        if (!acceptorName.isEmpty()) {
-                            player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replace("%player%", acceptorName));
-                        }
-                        connectPlayerToServer(player, targetServer);
-                    }
-                    case "TPAHERE_ACCEPTED" -> {
-                        // senderName = acceptor's name
-                        player.sendMessage(MessageUtil.get("Messages.AcceptedOther").replace("%player%", senderName));
-                    }
-                }
-            });
-        });
     }
 
-    public void connectPlayerToServer(Player player, String serverName) {
-        try {
-            ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeUTF("Connect");
-            out.writeUTF(serverName);
-            player.sendPluginMessage(this, "BungeeCord", out.toByteArray());
-        } catch (Exception e) {
-            getLogger().warning("Failed to connect " + player.getName() + " to " + serverName + ": " + e.getMessage());
-        }
+    /** Keeps the online-player name cache warm for tab completion. */
+    private void startCaches() {
+        if (!redisManager.isAvailable()) return;
+        // Folia's async scheduler requires initialDelay > 0
+        Bukkit.getAsyncScheduler().runAtFixedRate(this,
+                task -> redisManager.refreshPlayerNamesCache(),
+                1L, 5L, TimeUnit.SECONDS);
     }
 
-    @Override
-    public void onDisable() {
-        if (redisManager != null) {
-            redisManager.close();
-        }
+    private void startPubSub() {
+        PubSubHandler handler = new PubSubHandler(this, settings, tpaService);
+        redisManager.startSubscriber(handler);
     }
-
 }

@@ -6,13 +6,12 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-public class PlayerQuitListener implements Listener {
+public final class PlayerQuitListener implements Listener {
 
     @EventHandler
-    public void handle(PlayerQuitEvent event) {
+    public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         TryTpa.getInstance().getRedisManager().unregisterPlayer(player.getUniqueId(), player.getName());
         TryTpa.getInstance().getRequestStore().removeAllForPlayer(player.getUniqueId());
     }
-
 }

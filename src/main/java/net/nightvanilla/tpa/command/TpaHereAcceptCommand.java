@@ -1,8 +1,8 @@
 package net.nightvanilla.tpa.command;
 
-import net.nightvanilla.tpa.RequestStore;
 import net.nightvanilla.tpa.TryTpa;
-import net.nightvanilla.tpa.util.MessageUtil;
+import net.nightvanilla.tpa.request.RequestType;
+import net.nightvanilla.tpa.service.TpaService;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -11,52 +11,37 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.List;
 
-public class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
+public final class TpaHereAcceptCommand implements CommandExecutor, TabCompleter {
 
     public TpaHereAcceptCommand() {
-        var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand("tpahereaccept"));
-        cmd.setExecutor(this);
-        cmd.setTabCompleter(this);
+        CommandUtil.register("tpahereaccept", this, this);
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(sender instanceof Player player)) return false;
+        if (!CommandUtil.checkPermission(player, "trytpa.command.tpahere")) return false;
 
-        if (!player.hasPermission("trytpa.command.tpahere")) {
-            player.sendMessage(MessageUtil.get("Messages.NoPermission"));
-            return false;
-        }
+        TpaService service = TryTpa.getInstance().getTpaService();
 
         if (args.length == 0) {
-            TpaHereCommand.accept(player);
+            service.acceptAny(RequestType.TPA_HERE, player);
             return false;
         }
-
         if (args.length == 1) {
-            TpaHereCommand.accept(player, args[0]);
+            service.accept(RequestType.TPA_HERE, player, args[0]);
             return false;
         }
 
-        player.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "tpahereaccept <player>"));
+        CommandUtil.syntax(player, "tpahereaccept <player>");
         return false;
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        List<String> list = new ArrayList<>();
-
-        if (args.length == 1 && sender instanceof Player player) {
-            RequestStore store = TryTpa.getInstance().getRequestStore();
-            for (UUID uuid : store.getTpaHereRequestersForTarget(player.getUniqueId())) {
-                String name = store.resolvePlayerName(uuid);
-                if (name != null) list.add(name);
-            }
-        }
-
-        return list.stream().filter(c -> c.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).sorted().toList();
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!(sender instanceof Player player) || args.length != 1) return List.of();
+        return CommandUtil.filterPrefix(CommandUtil.requesterNames(RequestType.TPA_HERE, player), args);
     }
-
 }

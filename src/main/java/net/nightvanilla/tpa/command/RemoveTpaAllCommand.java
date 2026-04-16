@@ -11,60 +11,56 @@ import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
-public class RemoveTpaAllCommand implements CommandExecutor, TabCompleter {
+public final class RemoveTpaAllCommand implements CommandExecutor, TabCompleter {
 
     public RemoveTpaAllCommand() {
-        var cmd = Objects.requireNonNull(TryTpa.getInstance().getCommand("removetpaall"));
-        cmd.setExecutor(this);
-        cmd.setTabCompleter(this);
+        CommandUtil.register("removetpaall", this, this);
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        if (!(sender.hasPermission("trytpa.command.removetpaall"))) {
-            sender.sendMessage(MessageUtil.get("Messages.NoPermission"));
-            return false;
-        }
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        if (!CommandUtil.checkPermission(sender, "trytpa.command.removetpaall")) return false;
 
         if (args.length == 2) {
+            String player = args[0];
+            int days;
             try {
-                String player = args[0];
-                int days = Integer.parseInt(args[1]);
-
-                if (days > 0) {
-                    if (Bukkit.getPlayerUniqueId(player) == null) {
-                        sender.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
-                        return false;
-                    }
-
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "lp user " + player + " permission settemp trytpa.command.tpaall false " + days + "d");
-                    sender.sendMessage(MessageUtil.get("Messages.Removed").replace("%player%", player));
-                    return false;
-                }
+                days = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
                 TryTpa.getInstance().getLogger().warning("Invalid days argument for /removetpaall: '" + args[1] + "'");
+                CommandUtil.syntax(sender, "removetpaall <player> <days>");
+                return false;
+            }
+
+            if (days > 0) {
+                if (Bukkit.getPlayerUniqueId(player) == null) {
+                    sender.sendMessage(MessageUtil.get("Messages.PlayerNotFound"));
+                    return false;
+                }
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                        "lp user " + player + " permission settemp trytpa.command.tpaall false " + days + "d");
+                sender.sendMessage(MessageUtil.get("Messages.Removed").replace("%player%", player));
+                return false;
             }
         }
 
-        sender.sendMessage(MessageUtil.get("Messages.CommandSyntax").replace("%command%", "removetpaall <player> <days>"));
+        CommandUtil.syntax(sender, "removetpaall <player> <days>");
         return false;
     }
 
     @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-        List<String> list = new ArrayList<>();
-
-        if (args.length == 2) {
-            list.addAll(Arrays.asList("1", "2", "3", "5", "7", "14", "30"));
-        }
-
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (args.length == 1) {
-            list.addAll(Arrays.stream(Bukkit.getOfflinePlayers()).map(OfflinePlayer::getName).toList());
+            return CommandUtil.filterPrefix(
+                    Arrays.stream(Bukkit.getOfflinePlayers()).map(OfflinePlayer::getName).filter(n -> n != null).toList(),
+                    args);
         }
-
-        return list.stream().filter(content -> content.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).sorted().toList();
+        if (args.length == 2) {
+            return CommandUtil.filterPrefix(List.of("1", "2", "3", "5", "7", "14", "30"), args);
+        }
+        return List.of();
     }
-
 }
